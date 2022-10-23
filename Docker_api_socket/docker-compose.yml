@@ -1,0 +1,45 @@
+version: "3"
+services:
+  mysql:
+    container_name: docker-mysql
+    command:
+      - --default-authentication-plugin=mysql_native_password
+      - --sql-mode=NO_ENGINE_SUBSTITUTION
+    build:
+      context: ./db
+      dockerfile: Dockerfile
+    environment:
+      TZ: "Asia/Tokyo"
+    volumes:
+      - ./db/data:/var/lib/mysql
+      - ./db/init:/docker-entrypoint-initdb.d
+
+  api:
+    container_name: docker-api
+    build:
+      context: ./api
+      dockerfile: Dockerfile
+    volumes:
+      - ./api/index.js:/api/index.js
+    ports:
+      - 9000:3000
+    depends_on:
+      - mysql
+
+  phpmyadmin:
+    container_name: docker-phpmyadmin
+    image: phpmyadmin/phpmyadmin
+    restart: always
+    environment:
+      MYSQL_USER: test
+      MYSQL_PASSWORD: test1234
+      MYSQL_ROOT_PASSWORD: test1234
+      MYSQL_DATABASE: test_db
+      PMA_ARBITRARY: 1
+      PMA_HOST: mysql
+      PMA_USER: test
+      PMA_PASSWORD: test1234
+    ports:
+      - 9001:80
+    depends_on:
+      - mysql
