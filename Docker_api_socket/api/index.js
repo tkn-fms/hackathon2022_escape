@@ -46,9 +46,10 @@ io.on('connection',function(socket){
     });
 
     //部屋作成処理
-    socket.on("create-room", function(hostName){
+    socket.on("create-room", function(hostName, roomId){
       //mysqlにデータを送る
-      const sql = "INSERT INTO users SET host='"+hostName+"'";
+      console.log(roomId);
+      const sql = "INSERT INTO users SET host='"+hostName+"', roomId='"+roomId+"'";
       con.query(sql, function(err, result, fields){
         if (err) throw err;
       });
@@ -58,10 +59,11 @@ io.on('connection',function(socket){
     //部屋の詳細設定処理
     socket.on("room-settings", function(roomId, hostName ,gameMode, gameCourse){
       //mysqlに部屋の詳細設定を送る
-      const sql = "UPDATE users SET roomId=' "+roomId+"', mode='"+gameMode+"', course='"+gameCourse+"' WHERE host='"+hostName+"'";
+      const sql = "UPDATE users SET mode='"+gameMode+"', course='"+gameCourse+"' WHERE roomId='"+roomId+"'";
       con.query(sql, (err, result, fields) => {
         if (err) throw err;
       });
+      console.log("ルームID:"+roomId)
       //mysqlに一定間隔で問い合わせ
       var inquiry = function(){
         var sql2 = "SELECT * FROM users WHERE roomId='"+roomId+"'";
@@ -71,7 +73,6 @@ io.on('connection',function(socket){
           if(result[0]["guest"] != ""){
             //guestが来たことを知らせる
             setTimeout(function(){
-              console.log("guest来たよ");
               io.emit('ready-host');
             },3000);
             clearTimeout(repeatInquiry);
@@ -84,7 +85,7 @@ io.on('connection',function(socket){
 
     //ゲストの入室処理
     socket.on("guest-come", function(roomId, guestName){
-      console.log("guest-come発動!");
+      console.log("guest-come");
       //mysqlにゲスト名・ルームIDを送る
       const sql = "UPDATE users SET guest='"+guestName+"' WHERE roomId='"+roomId+"'; SELECT * FROM users WHERE roomId='"+roomId+"'";
       con.query(sql, (err, results, fields) => {
@@ -98,6 +99,11 @@ io.on('connection',function(socket){
           io.emit('ready-guest');
         },3000);
       });
+    });
+
+    //押す側が答えを送信（次の問題へ移る）
+    socket.on("go-nextq", function(){
+      io.emit("next-q");
     });
   });
 
